@@ -1,0 +1,40 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug xv6",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/kernel/kernel",
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "/usr/bin/gdb-multiarch",
+            "setupCommands": [
+                {
+                    "text": "set architecture riscv:rv64",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "file ${workspaceFolder}/kernel/kernel",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "target remote 127.0.0.1:26000",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "set remotetimeout 30",
+                    "ignoreFailures": false
+                },
+                {
+                    "text": "break main",
+                    "ignoreFailures": false
+                }
+            ]
+        }
+    ]
+}

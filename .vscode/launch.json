@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "调试 xv6 内核",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "D://os//ex//xv6-riscv//xv6-riscv-riscv//kernel//kernel",  // 指向 ELF 文件
+            "args": [],
+            "stopAtEntry": true,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "//usr//bin//gdb-multiarch",              // 使用支持 RISC-V 的 GDB
+            "setupCommands": [
+                {
+                    "description": "连接到 QEMU",
+                    "text": "target remote :26000",         // 端口与 qemu-gdb 一致
+                    "ignoreFailures": false
+                }
+            ]
+        }
+    ]
+}
