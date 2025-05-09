@@ -1,5 +1,5 @@
 struct stat;
-
+typedef unsigned int uint;
 // system calls
 int fork(void);
 int exit(int) __attribute__((noreturn));
@@ -22,6 +22,10 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+// 声明用户空间的 printf 函数
+int printff(const char *fmt, ...);
+int MYwrite(int, const void*, int);
+
 
 // ulib.c
 int stat(const char*, struct stat*);

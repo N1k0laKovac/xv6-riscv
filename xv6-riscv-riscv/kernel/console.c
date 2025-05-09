@@ -24,6 +24,8 @@
 
 #define BACKSPACE 0x100
 #define C(x)  ((x)-'@')  // Control-x
+// 定义控制台输出端口
+#define CONSOLE_PORT 0x3f8
 
 //
 // send one character to the uart.
@@ -190,3 +192,72 @@ consoleinit(void)
   devsw[CONSOLE].read = consoleread;
   devsw[CONSOLE].write = consolewrite;
 }
+
+// void outb(uint64 port, uint8 value) {
+//     // 向指定端口输出数据
+//     *((volatile uint8*) port) = value;
+// }
+
+// void kernel_printf(const char *fmt, ...) {
+//     va_list args;
+//     va_start(args, fmt);
+
+//     char c;
+//     while ((c = *fmt++)) {
+//         if (c == '%') {
+//             c = *fmt++;
+//             if (c == 'd') {
+//                 int val = va_arg(args, int);
+//                 char buf[32];
+//                 itoa(val, buf, 10);
+//                 for (int i = 0; buf[i]; i++) {
+//                     outb(CONSOLE_PORT, buf[i]);  // 输出字符到控制台
+//                 }
+//             }
+//         } else {
+//             outb(CONSOLE_PORT, c);  // 输出字符到控制台
+//         }
+//     }
+
+//     va_end(args);
+// }
+
+// // 简单的整数转字符串
+// void itoa(int num, char *str, int base) {
+//     int i = 0;
+//     int isNegative = 0;
+
+//     if (num == 0) {
+//         str[i++] = '0';
+//         str[i] = '\0';
+//         return;
+//     }
+
+//     if (num < 0 && base == 10) {
+//         isNegative = 1;
+//         num = -num;
+//     }
+
+//     while (num != 0) {
+//         int rem = num % base;
+//         str[i++] = (rem > 9) ? (rem - 10) + 'a' : rem + '0';
+//         num = num / base;
+//     }
+
+//     if (isNegative) {
+//         str[i++] = '-';
+//     }
+
+//     str[i] = '\0';
+
+//     // 反转字符串
+//     int start = 0;
+//     int end = i - 1;
+//     while (start < end) {
+//         char temp = str[start];
+//         str[start] = str[end];
+//         str[end] = temp;
+//         start++;
+//         end--;
+//     }
+// }

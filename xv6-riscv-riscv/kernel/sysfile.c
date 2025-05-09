@@ -95,6 +95,33 @@ sys_write(void)
 }
 
 uint64
+sys_MYwrite(void)
+{
+  struct file *f;
+  int n;
+  uint64 p;
+  
+  argaddr(1, &p);
+  argint(2, &n);
+  if(argfd(0, 0, &f) < 0)
+    return -1;
+
+  return filewrite(f, p, n);
+}
+
+uint64 
+sys_printff(void) {
+    char buf[256];
+    int n;
+    // 从用户态获取字符串参数
+    argstr(0, buf, sizeof(buf));  // 类似argaddr但处理字符串
+    n = strlen(buf);
+    // 调用内核的cprintf（需提前实现）
+    printf("%s", buf);
+    return n;
+}
+
+uint64
 sys_close(void)
 {
   int fd;
