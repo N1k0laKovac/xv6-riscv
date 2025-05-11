@@ -8,6 +8,9 @@
         "stat.h": "c",
         "param.h": "c",
         "fcntl.h": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "compare": "c",
+        "cstdint": "c",
+        "type_traits": "c"
     }
 }

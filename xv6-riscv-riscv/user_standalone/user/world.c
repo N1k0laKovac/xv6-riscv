@@ -1,10 +1,16 @@
-#include "user.h"
+#include <stdint.h>
+static inline void putc(char c) {
+    register uint64_t a0 asm("a0") = c;
+    register uint64_t a7 asm("a7") = 1; // SBI_CONSOLE_PUTCHAR
+    asm volatile("ecall" : : "r"(a0), "r"(a7));
+}
+static void print(const char *s) {
+    for (; *s; s++) putc(*s);
+}
 
-static const char msg[] = "WORLD\n";
-
-void user_world() {
-    while (1) {
-        write(1, msg, 6);
-        for (volatile int i = 0; i < 10000000; i++);
-    }
+void user_world(void) {
+  while (1) {
+    print("WORLD\n");
+    for (volatile int i = 0; i < 10000000; i++);
+  }
 }

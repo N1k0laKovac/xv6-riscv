@@ -4,8 +4,8 @@
 #include "context.h"
 #include "syscall.h"
 
-#define CLINT_MTIME       0x200BFF8UL
-#define CLINT_MTIMECMP(h) (0x2004000UL + 8*(h))  // h=0 表示 Hart 0
+#define CLINT_MTIME       0x0200BFF8UL
+#define CLINT_MTIMECMP(h) (0x02004000UL + 8*(h))  // h=0 表示 Hart 0
 
 extern void user_hello(void);
 extern void user_world(void);
@@ -18,18 +18,33 @@ extern char __stack_end;   // 链接脚本中定义
 static context_t ctx[NPROC];
 static int cur = 0;
 
+// 读取当前时间（mtime），单位：CPU 周期
+static inline uint64_t current_time(void) {
+    volatile uint64_t *mtime = (uint64_t*)CLINT_MTIME;
+    return *mtime;
+}
+
+
+
+static inline void sbi_set_timer(uint64_t when) {
+  register uint64_t a0 asm("a0") = when;  // next expiration
+  register uint64_t a7 asm("a7") = 0;     // SBI_SET_TIMER
+  asm volatile("ecall"
+               : "+r"(a0)    // a0 会被 clobber 用来返回错误码
+               : "r"(a7)
+               : "memory");
+}
+
 // Round-robin 调度器：接收被抢断的 old 上下文，更新 ctx[cur]，然后返回下一个 ctx[cur]
 void schedule(context_t *old) {
   // 保存刚被抢断的上下文
   ctx[cur] = *old;
   // 轮到下一个
   cur = (cur + 1) % NPROC;
-  // 安排下一次机器定时器中断
-  volatile uint64_t *mtime    = (uint64_t*)CLINT_MTIME;
-  volatile uint64_t *mtimecmp = (uint64_t*)CLINT_MTIMECMP(0);
-  *mtimecmp = *mtime + 1000000;  // 调整时间片长度
-  // 返回下一个上下文地址到 a0
-  __asm__ volatile("mv a0, %0" :: "r"(&ctx[cur]));
+  // 使用 SBI 设置下一次定时器中断
+    sbi_set_timer(current_time() + 1000000);
+
+    __asm__ volatile("mv a0, %0" :: "r"(&ctx[cur]));
 }
 
 // // SBI 控制台输出一个字符
@@ -75,11 +90,13 @@ void schedule(context_t *old) {
 //   return old_ctx;
 // }
 
+
 // 内核启动入口
 void kmain() {
   // 1. 安装中断向量到 timervec
   extern void timervec();
-  __asm__ volatile("la t0, timervec; csrw mtvec, t0");
+  __asm__ volatile("la t0, timervec; csrw stvec, t0");
+
 
   // 2. 初始化每个进程的上下文：regs 与堆栈指针 sp（x2），以及入口 epc
   for (int i = 0; i < NPROC; i++) {
@@ -92,15 +109,17 @@ void kmain() {
   ctx[1].epc = (uint64_t)user_world;
   ctx[2].epc = (uint64_t)user_mcat;
 
-  // 3. 使能机器定时器中断：设置初次 mtimecmp，打开 MIE.MTIE 与 MSTATUS.MIE
-  volatile uint64_t *mtime    = (uint64_t*)CLINT_MTIME;
-  volatile uint64_t *mtimecmp = (uint64_t*)CLINT_MTIMECMP(0);
-  *mtimecmp = *mtime + 1000000;
+  // 3. 启用 S-mode 全局中断（sstatus.SIE）和时钟中断（sie.SEIE）
+  unsigned long x;
+  __asm__ volatile("csrr %0, sstatus" : "=r"(x));
+  x |= (1 << 1);  // sstatus.SIE = 1
+  __asm__ volatile("csrw sstatus, %0" :: "r"(x));
 
-  // 打开 MIE.MTIE
-  __asm__ volatile("csrr t0, mie; li t1, 0x80; or t0, t0, t1; csrw mie, t0");
-  // 打开全局中断 MSTATUS.MIE
-  __asm__ volatile("csrr t0, mstatus; li t1, 0x8; or t0, t0, t1; csrw mstatus, t0");
+  __asm__ volatile("csrr %0, sie" : "=r"(x));
+  x |= (1 << 5);  // sie.SEIE = 1（允许 S-mode 外部时钟中断）
+  __asm__ volatile("csrw sie, %0" :: "r"(x));
+  // 首次通过 SBI 设置定时器
+    sbi_set_timer(current_time() + 1000000);
 
   // 4. 首次切换到第 0 号任务：恢复寄存器 && mret
   context_t *first = &ctx[0];
@@ -110,9 +129,9 @@ void kmain() {
     "ld t0,   1*8(sp)\n\t"    // 恢复 t0
     // … 依次恢复 s0–s11 寄存器 …
     "ld t1, 32*8(sp)\n\t"     // 恢复 mepc
-    "csrw mepc, t1\n\t"
+    "csrw sepc, t1\n\t"
     "addi sp, sp, %1\n\t"     // 恢复 SP 到进程栈顶
-    "mret\n\t"
+    "sret\n\t"
     :: "r"(first), "i"((32+1)*8)
   );
 

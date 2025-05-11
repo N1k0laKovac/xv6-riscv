@@ -1,17 +1,16 @@
-// user/mcat.c
-#include "types.h"
-#include "fcntl.h"
-#include "user.h"
-
+#include <stdint.h>
+static inline void putc(char c) {
+    register uint64_t a0 asm("a0") = c;
+    register uint64_t a7 asm("a7") = 1;
+    asm volatile("ecall" : : "r"(a0), "r"(a7));
+}
+static void print(const char *s) {
+    for (; *s; s++)
+        putc(*s);
+}
 void user_mcat(void) {
-    char buf[512];
-    int n;
-    // ? stdin
-    while ((n = read(0, buf, sizeof(buf))) > 0) {
-        if (write(1, buf, n) != n)
-            exit(1);
+    while (1) {
+        print("MCAT\n");
+        for (volatile int i = 0; i < 10000000; i++);
     }
-    if (n < 0)
-        exit(1);
-    exit(0);
 }

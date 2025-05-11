@@ -4,8 +4,8 @@ CC      := riscv64-unknown-elf-gcc
 LD      := riscv64-unknown-elf-gcc
 
 CMODEL  := -mcmodel=medany
-CFLAGS  := -O2 -ffreestanding -nostdlib $(CMODEL) -I. -Ikernel -Iuser
-LDFLAGS := -T user.ld -nostdlib -static $(CMODEL)
+CFLAGS  := -g -O2 -ffreestanding -nostdlib $(CMODEL) -I. -Ikernel -Iuser
+LDFLAGS := -g -T user.ld -nostdlib -static $(CMODEL)
 
 # 目标可执行文件改成 mcat（防止和 kernel/ 冲突）
 PROG    := mcat
@@ -48,3 +48,7 @@ clean:
 	-rm -f $(OBJS) mcat
 
 .PHONY: all clean
+
+.PHONY: debug
+debug:
+	qemu-system-riscv64 -machine virt -nographic -S -gdb tcp::1234 -kernel $(PROG)
